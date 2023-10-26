@@ -1,0 +1,122 @@
+---
+# tasks file for k0s
+
+- name: Create a bin directory.
+  ansible.builtin.file:
+    path: "{{ k0s_bin_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Create a configuration directory.
+  ansible.builtin.file:
+    path: "{{ k0s_config_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Create a data directory.
+  ansible.builtin.file:
+    path: "{{ k0s_data_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Download the k0s binary.
+  ansible.builtin.get_url:
+    url: "{{ k0s_download_base }}/{{ k0s_version }}/k0s-{{
+      k0s_version }}-{{ k0s_machine_mapping[ansible_architecture] }}"
+    dest: "{{ k0s_executable }}"
+    mode: "0755"
+
+- name: Create a configuration file on controller nodes.
+  ansible.builtin.template:
+    src: k0s.yaml.j2
+    dest: "{{ k0s_config_dir }}/{{ k0s_config_file }}"
+    mode: "0644"
+  notify: Restart k0s controller
+  when: k0s_control_group in group_names
+
+- name: Create systemd service unit file.
+  ansible.builtin.template:
+    src: k0s.service.j2
+    dest: "/etc/systemd/system/k0s{{ k0s_node_type }}.service"
+    mode: "0644"
+  notify: Restart k0s {{ k0s_node_type }}
+
+- name: Create an empty token file on the Genesis node.
+  ansible.builtin.file:
+    access_time: preserve
+    modification_time: preserve
+    path: "{{ k0s_config_dir }}/k0s.token"
+    mode: "0600"
+    state: touch
+  when: k0s_genesis_group in group_names
+
+- name: Start k0s on the Genesis node.
+  ansible.builtin.systemd:
+    daemon_reload: true
+    enabled: true
+    name: k0scontroller
+    state: started
+  when: k0s_genesis_group in group_names
+
+- name: Wait for kube-apiserver on the Genesis node.
+  ansible.builtin.wait_for:
+    delay: 15
+    port: 6443
+    timeout: 180
+  when: k0s_genesis_group in group_names
+
+- name: Check if the 'pki' directory exists, which means k0s is already configured.
+  ansible.builtin.stat:
+    path: "{{ k0s_data_dir }}/pki"
+    get_md5: false
+  register: k0s_pki_data_dir
+
+- name: Create join token.
+  changed_when: true
+  ansible.builtin.command: "{{ k0s_executable }} token create --role {{ k0s_node_type }} --expiry 30m"
+  delegate_to: "{{ k0s_genesis_node }}"
+  register: join_token
+  when:
+    - not k0s_pki_data_dir.stat.exists
+
+- name: Create token file.
+  ansible.builtin.template:
+    src: k0s.token.j2
+    dest: "{{ k0s_config_dir }}/k0s.token"
+    mode: "0600"
+
+- name: Start k0s on controller nodes.
+  ansible.builtin.systemd:
+    daemon_reload: true
+    enabled: true
+    name: "k0s{{ k0s_node_type }}"
+    state: started
+  throttle: 1
+  when: k0s_control_group in group_names
+
+- name: Wait for kube-apiserver on the controller nodes.
+  ansible.builtin.wait_for:
+    delay: 15
+    port: 6443
+  when: k0s_control_group in group_names
+
+- name: Start k0s on worker nodes.
+  ansible.builtin.systemd:
+    daemon_reload: true
+    enabled: true
+    name: "k0s{{ k0s_node_type }}"
+    state: started
+  throttle: 1
+  when: k0s_control_group not in group_names
+
+- name: Wait for kubelet on the worker nodes.
+  ansible.builtin.wait_for:
+    delay: 15
+    port: 10250
+  when: k0s_control_group not in group_names
+
+- name: Blank out the token file.
+  ansible.builtin.lineinfile:
+    path: "{{ k0s_config_dir }}/k0s.token"
+    regexp: '.'
+    state: absent

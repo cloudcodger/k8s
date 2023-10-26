@@ -1,0 +1,16 @@
+---
+# handlers file for k0s
+
+- name: Restart k0s controller
+  ansible.builtin.systemd:
+    name: k0scontroller
+    daemon_reload: true
+    state: restarted
+  when: k0s_pki_data_dir.stat.exists
+
+- name: Restart k0s worker
+  ansible.builtin.systemd:
+    name: k0sworker
+    daemon_reload: true
+    state: restarted
+  when: k0s_pki_data_dir.stat.exists

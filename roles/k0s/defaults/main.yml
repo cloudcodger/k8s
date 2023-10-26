@@ -1,0 +1,44 @@
+---
+# defaults file for k0s
+
+# Install directories
+k0s_bin_dir: /usr/local/bin
+k0s_config_dir: /etc/k0s
+k0s_data_dir: /var/lib/k0s
+
+# Files stored inside the k0s_config_dir
+k0s_config_file: k0s.yaml
+k0s_token_file: k0s.token
+
+# Allows for the Ansible group name to be changed
+# Any inventory host not in k0s_control_group is considered a worker
+k0s_control_group: control
+k0s_genesis_group: genesis
+
+# The location and version for downloading the k0s binary
+k0s_download_base: https://github.com/k0sproject/k0s/releases/download
+k0s_version: "{{ lookup('ansible.builtin.url', 'https://docs.k0sproject.io/stable.txt') }}"
+
+# A list of dictionaries for each worker profile
+k0s_worker_profiles: []
+
+# Configures the service command line arguments for controller nodes
+# Run `k0s controller -h` for details on the options
+k0s_controller_logging: ''
+k0s_disable_components: ['metrics-server']
+k0s_enable_dynamic_config: false
+k0s_enable_k0s_cloud_provider: false
+k0s_enable_metrics_scraper: false
+k0s_enable_worker: false
+k0s_kube_controller_manager_extra_args: ''
+k0s_no_taints: false
+k0s_single: false
+
+# Configures the service command line arguments for both node types
+# Run `k0s controller -h` or `k0s worker -h` for details on the options
+k0s_enable_cloud_provider: false
+k0s_iptables_mode: auto
+k0s_kubelet_extra_args: ''
+k0s_profile_name: default
+k0s_taints: ''
+k0s_worker_logging: ''

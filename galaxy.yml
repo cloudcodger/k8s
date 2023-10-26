@@ -1,0 +1,25 @@
+---
+namespace: cloudcodger
+name: k8s
+version: 1.0.0
+readme: README.md
+authors:
+  - Cloud Codger <cloudcodger@pm.me>
+
+description: Roles for Kubernetes (k8s) implementations.
+
+license:
+  - GPL-2.0-or-later
+
+tags:
+  - cluster
+  - infrastructure
+  - k0s
+  - kubernetes
+
+dependencies: {}
+repository: https://github.com/cloudcodger/k8s
+documentation: https://github.com/cloudcodger/k8s
+homepage: https://github.com/cloudcodger/k8s
+issues: https://github.com/cloudcodger/k8s/issues
+build_ignore: []

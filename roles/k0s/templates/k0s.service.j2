@@ -1,0 +1,52 @@
+[Unit]
+Description=k0s - Zero Friction Kubernetes
+Documentation=https://docs.k0sproject.io
+ConditionFileIsExecutable=/usr/local/bin/k0s
+
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+StartLimitInterval=5
+StartLimitBurst=10
+{% if k0s_control_group in group_names %}
+ExecStart={{ k0s_executable }} {{ k0s_node_type }}{{
+k0s_data_dir_option }}{{
+k0s_token_file_option }}{{
+k0s_iptables_mode_option }}{{
+k0s_kubelet_extra_args_option }}{{
+k0s_taints_option if k0s_enable_worker }}{{
+k0s_worker_profile_option if k0s_enable_worker }}{{
+k0s_config_option }}{{
+k0s_controller_logging_option }}{{
+k0s_disable_components_option }}{{
+' --enable-cloud-provider' if k0s_enable_cloud_provider }}{{
+' --enable-dynamic-config' if k0s_enable_dynamic_config }}{{
+' --enable-k0s-cloud-provider' if k0s_enable_k0s_cloud_provider }}{{
+' --enable-metrics-scraper' if k0s_enable_metrics_scraper }}{{
+' --enable-worker' if k0s_enable_worker }}{{
+k0s_kube_controller_manager_extra_args_option }}{{
+' --no-taints' if k0s_no_taints }}{{
+' --single' if k0s_single }}
+{% else %}
+ExecStart={{ k0s_executable }} {{ k0s_node_type }}{{
+k0s_data_dir_option }}{{
+k0s_token_file_option }}{{
+k0s_iptables_mode_option }}{{
+k0s_kubelet_extra_args_option }}{{
+k0s_taints_option }}{{
+k0s_worker_logging_option }}{{
+k0s_worker_profile_option }}
+{% endif %}
+
+RestartSec=120
+Delegate=yes
+KillMode=process
+LimitCORE=infinity
+TasksMax=infinity
+TimeoutStartSec=0
+LimitNOFILE=999999
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
