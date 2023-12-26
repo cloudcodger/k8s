@@ -1,7 +1,7 @@
 ---
 namespace: cloudcodger
 name: k8s
-version: 1.0.0
+version: 1.0.1
 readme: README.md
 authors:
   - Cloud Codger <cloudcodger@pm.me>

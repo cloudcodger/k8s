@@ -68,7 +68,6 @@
 - name: Check if the 'pki' directory exists, which means k0s is already configured.
   ansible.builtin.stat:
     path: "{{ k0s_data_dir }}/pki"
-    get_md5: false
   register: k0s_pki_data_dir
 
 - name: Create join token.
