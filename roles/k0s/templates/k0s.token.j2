@@ -1,3 +1,1 @@
-{% if not k0s_pki_data_dir.stat.exists %}
-{{ join_token.stdout }}
-{% endif %}
+{{ k0s_join_token.stdout }}

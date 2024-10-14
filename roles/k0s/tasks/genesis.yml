@@ -1,0 +1,20 @@
+---
+- name: Create k0s genesis controller service with install command.
+  ansible.builtin.command:
+    argv: "{{ k0s_install + vars['k0s_install_controller_opts'] }}"
+    creates: /etc/systemd/system/k0scontroller.service
+
+- name: Start k0s on the Genesis node.
+  ansible.builtin.systemd:
+    daemon_reload: true
+    enabled: true
+    name: k0scontroller
+    state: started
+  register: genesis_systemd_started
+
+- name: Wait for kube-apiserver on the Genesis node.
+  ansible.builtin.wait_for:
+    delay: 15
+    port: 6443
+    timeout: 180
+  when: genesis_systemd_started.changed

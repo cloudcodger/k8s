@@ -5,7 +5,6 @@
 # potentially set to empty strings.
 # These are then used in places like the service template to keep it cleaner.
 
-k0s_executable: "{{ k0s_bin_dir }}/k0s"
 k0s_genesis_node: "{{ groups[k0s_genesis_group] | intersect(ansible_play_batch) | first }}"
 
 k0s_machine_mapping:
@@ -17,25 +16,13 @@ k0s_machine_mapping:
   armv7l: arm
   armv8l: arm
 
-k0s_node_type: "{{ 'controller' if 'control' in group_names else 'worker' }}"
+k0s_node_type: "{{ 'controller' if k0s_control_group in group_names else 'worker' }}"
 
-# options for controller nodes only
-k0s_config_option: "{{ ' --config=' + k0s_config_dir + '/' + k0s_config_file if
-  k0s_config_dir != '/etc/k0s' or k0s_config_file != 'k0s.yaml' }}"
-k0s_controller_logging_option: "{{ ' --logging=' + k0s_controller_logging if
-  k0s_controller_logging | length > 0 }}"
-k0s_disable_components_option: "{{ ' --disable-components=' + k0s_disable_components | join(',') if
-  k0s_disable_components }}"
+k0s_install:
+  - "{{ k0s_bin_dir }}/k0s"
+  - install
+  - "{{ k0s_node_type }}"
 
-# options for both controller and worker nodes
-k0s_data_dir_option: "{{ ' --data-dir=' + k0s_data_dir if k0s_data_dir != '/var/lib/k0s' }}"
-k0s_iptables_mode_option: "{{ ' --iptables-mode=' + k0s_iptables_mode if
-  k0s_iptables_mode != 'auto' }}"
-k0s_kubelet_extra_args_option: "{{ ' --kubelet-extra-args=' + k0s_kubelet_extra_args if
-  k0s_kubelet_extra_args | length > 0 }}"
-k0s_kube_controller_manager_extra_args_option: "{{ ' --kube-controller-manager-extra-args=' +
-  k0s_kube_controller_manager_extra_args if k0s_kube_controller_manager_extra_args | length > 0 }}"
-k0s_taints_option: "{{  ' --taints=' + k0s_taints if k0s_taints | length > 0 }}"
-k0s_token_file_option: " --token-file={{ k0s_config_dir }}/{{ k0s_token_file }}"
-k0s_worker_logging_option: "{{ ' --logging=' + k0s_worker_logging if k0s_worker_logging | length > 0 }}"
-k0s_worker_profile_option: "{{ ' --profile=' + k0s_profile_name if k0s_profile_name != 'default' }}"
+k0s_install_token_file:
+  - --token-file
+  - "{{ k0s_config_dir }}/k0s.token"

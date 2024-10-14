@@ -1,0 +1,57 @@
+---
+- name: Create join token that expires after 30 minutes.
+  changed_when: true
+  ansible.builtin.command: "{{ k0s_bin_dir }}/k0s token create --role {{ k0s_node_type }} --expiry 30m"
+  delegate_to: "{{ k0s_genesis_node }}"
+  register: k0s_join_token
+
+- name: Create join token file.
+  ansible.builtin.template:
+    src: k0s.token.j2
+    dest: "{{ k0s_config_dir }}/k0s.token"
+    mode: "0600"
+
+- name: Create k0s service with install command.
+  ansible.builtin.command:
+    argv: "{{ k0s_install + vars['k0s_install_' + k0s_node_type + '_opts'] + k0s_install_token_file }}"
+    creates: /etc/systemd/system/k0s{{ k0s_node_type }}.service
+
+- name: Start the k0s service.
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: "k0s{{ k0s_node_type }}"
+    state: started
+  throttle: 1
+
+- name: Wait for 'kube-apiserver' or 'kubelet' on the node.
+  ansible.builtin.wait_for:
+    delay: 30
+    port: "{{ '6443' if k0s_control_group in group_names else '10250' }}"
+    timeout: 180
+
+- name: Stop the k0s service in order to replace it without the join token file.
+  ansible.builtin.systemd:
+    name: "k0s{{ k0s_node_type }}"
+    state: stopped
+  throttle: 1
+
+- name: Remove the token and service files.
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/systemd/system/k0s{{ k0s_node_type }}.service
+    - "{{ k0s_config_dir }}/k0s.token"
+
+- name: Create the k0s service with install command (and no join token file).
+  ansible.builtin.command:
+    argv: "{{ k0s_install + vars['k0s_install_' + k0s_node_type + '_opts'] }}"
+    creates: /etc/systemd/system/k0s{{ k0s_node_type }}.service
+
+- name: Start and enable the k0s service.
+  ansible.builtin.systemd:
+    daemon_reload: true
+    enabled: true
+    name: "k0s{{ k0s_node_type }}"
+    state: started
+  throttle: 1
